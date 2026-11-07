@@ -1,0 +1,35 @@
+# Railway (Railpack staticfile). Сайт собран под GitHub Pages с basePath
+# /qaztracker-vision-landing-v2 — здесь этот префикс просто отрезаем.
+{
+	admin off
+	persist_config off
+	auto_https off
+	log {
+		format json
+	}
+	servers {
+		trusted_proxies static private_ranges 100.0.0.0/8
+	}
+}
+
+:{$PORT:80} {
+	root * .
+	encode gzip
+
+	redir /qaztracker-vision-landing-v2 /qaztracker-vision-landing-v2/ 308
+
+	handle_path /qaztracker-vision-landing-v2/* {
+		try_files {path} {path}/index.html {path}.html
+		file_server
+	}
+
+	handle {
+		try_files {path} {path}/index.html {path}.html
+		file_server
+	}
+
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
+}
