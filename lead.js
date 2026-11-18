@@ -1,15 +1,16 @@
 /* QazTracker Vision — отправка заявки с сайта.
  *
- * Заявка (имя, телефон, количество голов) уходит в Google Apps Script,
- * а он пересылает её в Telegram — см. FORM-SETUP.md.
- * Пока ENDPOINT пустой или сервер не ответил, заявка открывается в WhatsApp
- * готовым сообщением, чтобы ни одна заявка не потерялась.
+ * Заявка (имя, телефон, мал басы) уходит в Google Apps Script:
+ * он пишет её в Google-таблицу и сразу присылает в Telegram — см. FORM-SETUP.md.
+ * WhatsApp при отправке не открывается.
  */
 (function () {
   'use strict';
 
-  // URL веб-приложения Apps Script, вида https://script.google.com/macros/s/…/exec
-  var ENDPOINT = '';
+  // URL веб-приложения Apps Script (тот же, что у квиза)
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxfHUBOUF2CgZtdUUYKTugCHbIEPsxnEoLaHB7FSAZX0mcYXAKl7cdDknxrcPE_1Yuzjw/exec';
+  // Яндекс Метрика: цель, которая уже настроена в квизе
+  var YM_GOAL = 'lead';
 
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
 
@@ -67,15 +68,6 @@
     return !bad;
   }
 
-  function waLink(form, lead) {
-    var d = form.dataset;
-    var text = d.waIntro + '\n' +
-      d.waName + ': ' + lead.name + '\n' +
-      d.waPhone + ': ' + lead.phone + '\n' +
-      d.waHeads + ': ' + lead.heads;
-    return 'https://wa.me/' + d.waNumber + '?text=' + encodeURIComponent(text);
-  }
-
   function track(name, params) {
     var w = window;
     var p = Object.assign({}, params, { hero_variant: w.__qtHero || 'default' });
@@ -106,10 +98,8 @@
     done.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function showError(f, link) {
-    if (!f.error) { window.location.href = link; return; }
-    var a = f.error.querySelector('a');
-    if (a) a.href = link;
+  function showError(f) {
+    if (!f.error) { window.alert(f.button.form.dataset.msgError || 'Не получилось отправить заявку. Попробуйте ещё раз.'); return; }
     f.error.hidden = false;
   }
 
@@ -139,25 +129,17 @@
     if (f.error) f.error.hidden = true;
     if (!validate(form, f)) return;
 
+    // в таблицу уходят только имя, телефон и мал басы
     var lead = {
       name: f.name.value.trim().slice(0, 80),
       phone: formatPhone(normPhone(f.phone.value)),
       heads: digits(f.heads.value),
-      lang: document.documentElement.lang === 'kk' ? 'kz' : 'ru',
-      page: location.href.split('#')[0].slice(0, 300),
-      website: f.website ? f.website.value : ''
+      website: f.website ? f.website.value : '', // скрытое поле-ловушка для ботов
+      source: 'site'
     };
     if (lead.website) { showDone(form); return; } // бот заполнил скрытое поле
 
-    var link = waLink(form, lead);
-    var meta = { heads: lead.heads, lang: lead.lang };
-
-    if (!ENDPOINT) { // Telegram ещё не подключён — как раньше, через WhatsApp
-      window.open(link, '_blank', 'noopener');
-      track('generate_lead', Object.assign({ via: 'whatsapp' }, meta));
-      showDone(form);
-      return;
-    }
+    var meta = { heads: lead.heads, lang: document.documentElement.lang === 'kk' ? 'kz' : 'ru' };
 
     setBusy(form, f, true);
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -169,12 +151,13 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (!res || !res.ok) throw new Error('not ok');
-        track('generate_lead', Object.assign({ via: 'telegram' }, meta));
+        track('generate_lead', Object.assign({ via: 'sheet' }, meta));
+        try { if (window.__qtYm && window.ym) window.ym(Number(window.__qtYm), 'reachGoal', YM_GOAL); } catch (e) { /* — */ }
         showDone(form);
       })
       .catch(function () {
         track('lead_error', meta);
-        showError(f, link);
+        showError(f);
       })
       .then(function () {
         clearTimeout(timer);
