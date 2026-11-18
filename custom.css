@@ -166,3 +166,6 @@
 }
 .lead__done h3 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.7rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
 .lead__done p { color: var(--on-stage-2); font-size: 1.05rem; }
+
+/* Ошибка отправки: без перехода в WhatsApp — только просьба отправить ещё раз */
+.form__error .btn--wa { display: none; }
