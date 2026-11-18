@@ -1,8 +1,14 @@
-# QazTracker Vision — демо-копия лендинга (черновик)
+# QazTracker Vision — лендинг ИИ-взвешивания КРС
 
-Статическая копия продающего лендинга ИИ-взвешивания КРС для просмотра: https://daulet-rama.github.io/qaztracker-vision-landing-v2/ (RU) и …/kz/ (KZ).
+Статическая копия продающего лендинга: https://weight.qaztracker.com (RU) и …/kz (KZ).
+Та же копия открывается на https://daulet-rama.github.io/qaztracker-vision-landing-v2/.
 
-- Это **черновик**: всё, что ещё не подтверждено, собрано в плашке «Черновик» в углу экрана.
-- В копии нет сервера: админки и приёма заявок нет — форма открывает WhatsApp с заполненной заявкой.
+- Исходники лендинга (Next.js + Payload CMS + Three.js) — не в этом репозитории:
+  здесь собранные страницы, их правят прямо в HTML.
+- Заявки: форма (имя, телефон, количество голов) → Google Apps Script → Telegram.
+  Как подключить — [FORM-SETUP.md](FORM-SETUP.md). Пока не подключено,
+  заявка открывается в WhatsApp готовым сообщением.
+- Свои стили и скрипты поверх сборки: [`custom.css`](custom.css) (зелёные кнопки,
+  карточки «весы → камера», форма) и [`lead.js`](lead.js) (отправка заявки).
 - Страницы закрыты от поисковиков (noindex, robots.txt).
-- Исходники лендинга (Next.js + Payload CMS + Three.js) — не в этом репозитории.
+- [`Caddyfile`](Caddyfile) — раздача сайта на Railway (weight.qaztracker.com).
