@@ -1,6 +1,6 @@
 /* QazTracker Vision — отправка заявки с сайта.
  *
- * Заявка (имя, телефон, количество голов, UTM) уходит в Google Apps Script:
+ * Заявка (имя, телефон, мал басы) уходит в Google Apps Script:
  * он пишет её в Google-таблицу и сразу присылает в Telegram — см. FORM-SETUP.md.
  * WhatsApp при отправке не открывается.
  */
@@ -68,13 +68,6 @@
     return !bad;
   }
 
-  // UTM и метки рекламы: сохраняет скрипт в <head> при заходе на сайт
-  function attribution() {
-    var a = {};
-    try { a = JSON.parse(sessionStorage.getItem('qt_last') || localStorage.getItem('qt_first') || '{}') || {}; } catch (e) { a = {}; }
-    return a;
-  }
-
   function track(name, params) {
     var w = window;
     var p = Object.assign({}, params, { hero_variant: w.__qtHero || 'default' });
@@ -136,22 +129,17 @@
     if (f.error) f.error.hidden = true;
     if (!validate(form, f)) return;
 
+    // в таблицу уходят только имя, телефон и мал басы
     var lead = {
       name: f.name.value.trim().slice(0, 80),
       phone: formatPhone(normPhone(f.phone.value)),
       heads: digits(f.heads.value),
-      lang: document.documentElement.lang === 'kk' ? 'kz' : 'ru',
-      page: location.href.split('#')[0].slice(0, 300),
-      website: f.website ? f.website.value : '',
+      website: f.website ? f.website.value : '', // скрытое поле-ловушка для ботов
       source: 'site'
     };
-    var utm = attribution();
-    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
-      lead[k] = utm[k] ? String(utm[k]).slice(0, 200) : '';
-    });
     if (lead.website) { showDone(form); return; } // бот заполнил скрытое поле
 
-    var meta = { heads: lead.heads, lang: lead.lang };
+    var meta = { heads: lead.heads, lang: document.documentElement.lang === 'kk' ? 'kz' : 'ru' };
 
     setBusy(form, f, true);
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;

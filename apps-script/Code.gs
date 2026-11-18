@@ -24,10 +24,7 @@ const PRIORITY_HERDS = ["100–500", "500–1 000", "Более 1 000"];
 
 // ---------------------------------------------------------------- сайт
 const SITE_SHEET_NAME = "Заявки с сайта";
-const SITE_HEADERS = [
-  "Дата и время", "Имя", "Телефон", "Голов", "Язык", "Страница",
-  "utm_source", "utm_medium", "utm_campaign", "utm_content", "Telegram",
-];
+const SITE_HEADERS = ["Дата и время", "Имя", "Телефон", "Мал басы"];
 
 // ---------------------------------------------------------------- Telegram
 // Токен от @BotFather, вида 1234567890:AAH…  Никому его не пересылайте.
@@ -103,7 +100,6 @@ function siteLead_(p) {
   const name = plain_(p.name, 80);
   const phoneDigits = String(p.phone || "").replace(/\D/g, "").slice(0, 15);
   const heads = String(p.heads || "").replace(/\D/g, "").slice(0, 7);
-  const lang = p.lang === "kz" ? "KZ" : "RU";
   if (name.length < 2 || phoneDigits.length < 10) return json_({ ok: false, error: "bad input" });
 
   // двойной клик по кнопке — не дублируем заявку
@@ -115,24 +111,13 @@ function siteLead_(p) {
   lock.waitLock(10000);
   try {
     let saved = false;
-    let row = 0;
-    let sheet = null;
     try {
-      sheet = getSheet_(SITE_SHEET_NAME, SITE_HEADERS);
-      sheet.appendRow([
+      getSheet_(SITE_SHEET_NAME, SITE_HEADERS).appendRow([
         now_(),
         clean_(name, 80),
-        "'+" + phoneDigits,
+        "'+" + phoneDigits, // как текст, чтобы не потерять +
         heads,
-        lang,
-        clean_(p.page, 300),
-        clean_(p.utm_source),
-        clean_(p.utm_medium),
-        clean_(p.utm_campaign),
-        clean_(p.utm_content),
-        "…",
       ]);
-      row = sheet.getLastRow();
       saved = true;
     } catch (err) { console.error("Таблица: " + err); }
 
@@ -140,13 +125,10 @@ function siteLead_(p) {
     try {
       sent = sendTelegram_(formatLead_({
         title: "🟢 Новая заявка с сайта",
-        name: name, phone: phoneDigits, lang: lang,
-        lines: ["🐄 Голов: " + (heads || "—")],
-        utm: p.utm_source,
+        name: name, phone: phoneDigits,
+        lines: ["🐄 Мал басы: " + (heads || "—")],
       }));
     } catch (err) { console.error("Telegram: " + err); }
-
-    if (saved) sheet.getRange(row, SITE_HEADERS.length).setValue(sent ? "отправлено" : "ошибка");
 
     const ok = saved || sent; // заявка не потерялась, если дошла хотя бы в одно место
     if (ok) cache.put(key, "1", 120);
@@ -199,7 +181,7 @@ function connectTelegram() {
 
 /** Тест: запишет тестовую заявку с сайта в таблицу и пришлёт её в Telegram. */
 function testSiteLead() {
-  const out = siteLead_({ source: "site", name: "Тестовая заявка", phone: "+7 (701) 000-00-00", heads: "100", lang: "ru", page: "test" });
+  const out = siteLead_({ source: "site", name: "Тестовая заявка", phone: "+7 (701) 000-00-00", heads: "100" });
   console.log(out.getContent());
 }
 
@@ -248,7 +230,7 @@ function formatLead_(o) {
     : "+" + d;
   const lines = ["<b>" + esc_(o.title) + "</b>", "", "👤 " + esc_(plain_(o.name, 80)), "📞 " + phone];
   (o.lines || []).forEach(function (l) { if (l) lines.push(esc_(l)); });
-  lines.push("🌐 Язык: " + esc_(String(o.lang || "").toUpperCase() || "—"));
+  if (o.lang) lines.push("🌐 Язык: " + esc_(String(o.lang).toUpperCase()));
   if (o.utm) lines.push("🔗 Источник: " + esc_(plain_(o.utm, 60)));
   lines.push("", '<a href="https://wa.me/' + d + '">Написать в WhatsApp</a> · ' + now_());
   return lines.join("\n");
