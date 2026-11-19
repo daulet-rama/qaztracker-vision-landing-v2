@@ -74,7 +74,8 @@
     (w.__qtEvents = w.__qtEvents || []).push({ event: name, params: p, t: Date.now() });
     try { if (w.gtag) w.gtag('event', name, p); } catch (e) { /* аналитика не обязательна */ }
     try { if (w.__qtYm && w.ym) w.ym(Number(w.__qtYm), 'reachGoal', name, p); } catch (e) { /* — */ }
-    try { if (w.fbq) w.fbq('track', 'Lead', p); } catch (e) { /* — */ }
+    // Facebook Pixel: «Lead» — только успешная заявка, остальное — свои события
+    try { if (w.fbq) { if (name === 'generate_lead') w.fbq('track', 'Lead', p); else w.fbq('trackCustom', name, p); } } catch (e) { /* — */ }
   }
 
   function setBusy(form, f, busy) {
